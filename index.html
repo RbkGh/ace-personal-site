@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Room :: Software Engineer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #000;
+            color: #00ffff;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            cursor: move;
+        }
+
+        /* 3D Server Room */
+        #serverRoom {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            perspective: 1000px;
+            background: radial-gradient(ellipse at center, #001122 0%, #000000 100%);
+        }
+
+        .room {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.1s ease-out;
+        }
+
+        /* Server Racks */
+        .server-rack {
+            position: absolute;
+            width: 200px;
+            height: 400px;
+            background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1e 100%);
+            border: 2px solid #00ffff;
+            transform-style: preserve-3d;
+            cursor: pointer;
+            box-shadow: 
+                0 0 50px rgba(0, 255, 255, 0.3),
+                inset 0 0 50px rgba(0, 255, 255, 0.1);
+        }
+
+        .server-rack::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 20px,
+                rgba(0, 255, 255, 0.1) 20px,
+                rgba(0, 255, 255, 0.1) 22px
+            );
+        }
+
+        /* Server Labels */
+        .server-label {
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 20, 40, 0.9);
+            border: 1px solid #00ffff;
+            padding: 5px 15px;
+            font-size: 12px;
+            color: #00ffff;
+            white-space: nowrap;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+            font-weight: bold;
+            backdrop-filter: blur(5px);
+        }
+
+        .server-label::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 5px solid #00ffff;
+        }
+
+        .server-status {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ff00;
+            padding: 3px 10px;
+            font-size: 10px;
+            color: #00ff00;
+            text-align: center;
+            animation: statusPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes statusPulse {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; box-shadow: 0 0 10px #00ff00; }
+        }
+
+        /* Server LEDs */
+        .led-strip {
+            position: absolute;
+            width: 100%;
+            height: 20px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 0 10px;
+        }
+
+        .led {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: ledBlink 2s infinite;
+        }
+
+        .led:nth-child(1) { background: #00ff00; animation-delay: 0s; }
+        .led:nth-child(2) { background: #ffff00; animation-delay: 0.5s; }
+        .led:nth-child(3) { background: #00ff00; animation-delay: 1s; }
+        .led:nth-child(4) { background: #ff0000; animation-delay: 1.5s; }
+        .led:nth-child(5) { background: #00ff00; animation-delay: 2s; }
+
+        @keyframes ledBlink {
+            0%, 100% { opacity: 0.3; box-shadow: none; }
+            50% { opacity: 1; box-shadow: 0 0 10px currentColor; }
+        }
+
+        /* Rack positioning - ONLY 3 RACKS */
+        #rack1 {
+            left: 50%;
+            top: 15%;
+            transform: translateX(-50%) rotateY(0deg) translateZ(150px);
+        }
+
+        #rack3 {
+            left: 20%;
+            top: 35%;
+            transform: rotateY(20deg) translateZ(50px);
+        }
+
+        #rack4 {
+            right: 20%;
+            top: 35%;
+            transform: rotateY(-20deg) translateZ(50px);
+        }
+
+        /* Floor Grid */
+        .floor-grid {
+            position: absolute;
+            bottom: 0;
+            left: -50%;
+            right: -50%;
+            height: 50%;
+            background-image: 
+                linear-gradient(rgba(0, 255, 255, 0.2) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 255, 0.2) 1px, transparent 1px);
+            background-size: 50px 50px;
+            transform: rotateX(70deg) translateZ(-100px);
+            opacity: 0.5;
+        }
+
+        /* Info Panel */
+        .info-panel {
+            position: fixed;
+            background: rgba(0, 20, 40, 0.95);
+            border: 2px solid #00ffff;
+            border-radius: 10px;
+            padding: 30px;
+            max-width: 500px;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            box-shadow: 
+                0 0 50px rgba(0, 255, 255, 0.5),
+                inset 0 0 30px rgba(0, 255, 255, 0.1);
+            display: none;
+            animation: panelSlide 0.5s ease-out;
+        }
+
+        @keyframes panelSlide {
+            from {
+                transform: translateX(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .info-panel.active {
+            display: block;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #00ffff;
+        }
+
+        .close-btn {
+            background: none;
+            border: 1px solid #00ffff;
+            color: #00ffff;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.3s;
+        }
+
+        .close-btn:hover {
+            background: #00ffff;
+            color: #000;
+            transform: rotate(90deg);
+        }
+
+        /* HUD Display */
+        .hud {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ffff;
+            padding: 15px;
+            font-size: 12px;
+            backdrop-filter: blur(5px);
+        }
+
+        .hud-title {
+            color: #00ffff;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px #00ffff;
+        }
+
+        .hud-item {
+            margin: 5px 0;
+            opacity: 0.8;
+        }
+
+        /* Navigation Instructions */
+        .nav-instructions {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 20, 40, 0.9);
+            border: 1px solid #00ffff;
+            padding: 10px 20px;
+            border-radius: 20px;
+            z-index: 100;
+            text-align: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .mobile-text {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .desktop-text {
+                display: none;
+            }
+            .mobile-text {
+                display: inline;
+            }
+        }
+
+        /* Content Panels */
+        h1 {
+            color: #00ffff;
+            text-shadow: 0 0 20px #00ffff;
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+
+        h2 {
+            color: #00ffff;
+            margin: 15px 0;
+            font-size: 1.2em;
+        }
+
+        p {
+            line-height: 1.6;
+            margin: 10px 0;
+            color: #88ffff;
+        }
+
+        /* Social Links */
+        .social-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .social-link {
+            color: #00ffff;
+            text-decoration: none;
+            padding: 8px 15px;
+            border: 1px solid #00ffff;
+            background: rgba(0, 255, 255, 0.1);
+            transition: all 0.3s;
+            display: inline-block;
+        }
+
+        .social-link:hover {
+            background: #00ffff;
+            color: #000;
+            transform: scale(1.1);
+            box-shadow: 0 0 20px #00ffff;
+        }
+
+        /* Form Styles */
+        .form-group {
+            margin: 15px 0;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #00ffff;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #00ffff;
+            color: #00ffff;
+            font-family: 'Courier New', monospace;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            background: rgba(0, 255, 255, 0.1);
+            box-shadow: 0 0 10px #00ffff;
+        }
+
+        .submit-btn {
+            background: transparent;
+            color: #00ffff;
+            border: 2px solid #00ffff;
+            padding: 10px 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Courier New', monospace;
+            text-transform: uppercase;
+        }
+
+        .submit-btn:hover {
+            background: #00ffff;
+            color: #000;
+            box-shadow: 0 0 30px #00ffff;
+        }
+
+        /* Particle Effects */
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: #00ffff;
+            pointer-events: none;
+            animation: float 10s infinite linear;
+        }
+
+        @keyframes float {
+            from {
+                transform: translateY(100vh) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            to {
+                transform: translateY(-100vh) translateX(100px);
+                opacity: 0;
+            }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .server-rack {
+                width: 150px;
+                height: 300px;
+            }
+            
+            .info-panel {
+                max-width: 90%;
+                margin: 20px;
+            }
+            
+            .hud {
+                font-size: 10px;
+            }
+        }
+
+        /* Loading Screen */
+        #loadingScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 2000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .loading-text {
+            color: #00ffff;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px #00ffff;
+        }
+
+        .loading-bar {
+            width: 300px;
+            height: 4px;
+            background: rgba(0, 255, 255, 0.2);
+            overflow: hidden;
+        }
+
+        .loading-progress {
+            height: 100%;
+            background: #00ffff;
+            animation: loading 2s ease-out;
+            box-shadow: 0 0 20px #00ffff;
+        }
+
+        @keyframes loading {
+            from { width: 0; }
+            to { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loadingScreen">
+        <div class="loading-text">INITIALIZING SERVER ROOM...</div>
+        <div class="loading-bar">
+            <div class="loading-progress"></div>
+        </div>
+    </div>
+
+    <!-- 3D Server Room -->
+    <div id="serverRoom">
+        <div class="room" id="room">
+            <!-- Floor Grid -->
+            <div class="floor-grid"></div>
+            
+            <!-- ONLY THREE SERVER RACKS - NO SKILL MATRIX -->
+            <div class="server-rack" id="rack1" data-panel="about">
+                <div class="server-label">CORE.IDENTITY</div>
+                <div class="led-strip" style="top: 20px;">
+                    <div class="led"></div>
+                    <div class="led"></div>
+                    <div class="led"></div>
+                    <div class="led"></div>
+                    <div class="led"></div>
+                </div>
+                <div class="led-strip" style="top: 60px;">
+                    <div class="led"></div>
+                    <div class="led"></div>
+                    <div class="led"></div>
+                    <div class="led"></div>
+                    <div class="led"></div>
+                </div>
+                <div class="led-strip" style="top: 100px;">
+                    <div class="led"></div>
+                    <div class="led"></div>
+                    <div class="led"></div>
+                    <div class="led"></div>
+                    <div class="led"></div>
+                </div>
+                <div class="server-status">WHO_AM_I.EXE</div>
+            </div>
+            
+            <div class="server-rack" id="rack3" data-panel="connect">
+                <div class="server-label">NETWORK.HUB</div>
+                <div class="led-strip" style="top: 20px;">
+                    <div class="led"></div>
+                    <div class="led"></div>
+                    <div class="led"></div>
+                    <div class="led"></div>
+                    <div class="led"></div>
+                </div>
+                <div class="led-strip" style="top: 60px;">
+                    <div class="led"></div>
+                    <div class="led"></div>
+                    <div class="led"></div>
+                    <div class="led"></div>
+                    <div class="led"></div>
+                </div>
+                <div class="server-status">SOCIAL_LINKS.SH</div>
+            </div>
+            
+            <div class="server-rack" id="rack4" data-panel="contact">
+                <div class="server-label">COMM.PORTAL</div>
+                <div class="led-strip" style="top: 20px;">
+                    <div class="led"></div>
+                    <div class="led"></div>
+                    <div class="led"></div>
+                    <div class="led"></div>
+                    <div class="led"></div>
+                </div>
+                <div class="led-strip" style="top: 60px;">
+                    <div class="led"></div>
+                    <div class="led"></div>
+                    <div class="led"></div>
+                    <div class="led"></div>
+                    <div class="led"></div>
+                </div>
+                <div class="server-status">MSG_PROTOCOL.IO</div>
+            </div>
+            
+            <!-- Floating Particles -->
+            <div class="particle" style="left: 10%; animation-delay: 0s;"></div>
+            <div class="particle" style="left: 30%; animation-delay: 2s;"></div>
+            <div class="particle" style="left: 50%; animation-delay: 4s;"></div>
+            <div class="particle" style="left: 70%; animation-delay: 6s;"></div>
+            <div class="particle" style="left: 90%; animation-delay: 8s;"></div>
+        </div>
+    </div>
+
+    <!-- HUD Display -->
+    <div class="hud">
+        <div class="hud-title">SYSTEM STATUS</div>
+        <div class="hud-item">Temperature: 18°C</div>
+        <div class="hud-item">Uptime: 99.99%</div>
+        <div class="hud-item">Load: 42%</div>
+        <div class="hud-item">Network: Online</div>
+    </div>
+
+    <!-- Navigation Instructions -->
+    <div class="nav-instructions">
+        Click & Drag to Explore | Click Servers to Access Data
+    </div>
+
+    <!-- Info Panels - ONLY 3 PANELS, NO SKILLS PANEL -->
+    <div class="info-panel" id="about-panel">
+        <div class="panel-header">
+            <h1>ABOUT.SYS</h1>
+            <button class="close-btn">×</button>
+        </div>
+        <p>Welcome to my digital infrastructure!</p>
+        <p>I'm a software engineer specializing in building robust, scalable server architectures and distributed systems. Like this server room, I maintain complex systems running at peak efficiency.</p>
+        <p>My passion lies in optimizing performance, ensuring reliability, and pushing the boundaries of what's possible with modern technology.</p>
+        <h2>Core Competencies:</h2>
+        <p>• Backend Development & API Design</p>
+        <p>• Cloud Architecture (AWS, GCP, Azure)</p>
+        <p>• Database Management & Optimization</p>
+        <p>• DevOps & CI/CD Pipelines</p>
+        <p>• System Architecture & Scalability</p>
+        <h2>Current Status:</h2>
+        <p>🟢 Available for new projects</p>
+        <p>🟢 Open to collaboration</p>
+        <p>🟢 Systems operational</p>
+    </div>
+
+    <div class="info-panel" id="connect-panel">
+        <div class="panel-header">
+            <h1>NETWORK.LINKS</h1>
+            <button class="close-btn">×</button>
+        </div>
+        <h2>Establish Connection:</h2>
+        <p>Access my profiles across the network:</p>
+        <div class="social-links">
+            <a href="https://linkedin.com" target="_blank" class="social-link">LINKEDIN</a>
+            <a href="https://github.com" target="_blank" class="social-link">GITHUB</a>
+            <a href="https://twitter.com" target="_blank" class="social-link">TWITTER</a>
+            <a href="#" class="social-link">PLAYSTATION</a>
+            <a href="mailto:your.email@example.com" class="social-link">EMAIL</a>
+        </div>
+    </div>
+
+    <div class="info-panel" id="contact-panel">
+        <div class="panel-header">
+            <h1>CONTACT.FORM</h1>
+            <button class="close-btn">×</button>
+        </div>
+        <form id="contactForm">
+            <div class="form-group">
+                <label>NAME:</label>
+                <input type="text" name="name" required>
+            </div>
+            <div class="form-group">
+                <label>EMAIL:</label>
+                <input type="email" name="email" required>
+            </div>
+            <div class="form-group">
+                <label>REASON:</label>
+                <select name="reason" required>
+                    <option value="">Select...</option>
+                    <option value="collaboration">Collaboration</option>
+                    <option value="job">Job Opportunity</option>
+                    <option value="project">Project</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>MESSAGE:</label>
+                <textarea name="message" rows="4" required></textarea>
+            </div>
+            <button type="submit" class="submit-btn">TRANSMIT</button>
+        </form>
+        <div id="formStatus" style="margin-top: 15px;"></div>
+    </div>
+
+    <script>
+        // Loading screen
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.getElementById('loadingScreen').style.display = 'none';
+            }, 2000);
+        });
+
+        // 3D Room Movement
+        const room = document.getElementById('room');
+        let mouseX = 0;
+        let mouseY = 0;
+        let targetX = 0;
+        let targetY = 0;
+        let isDragging = false;
+
+        document.addEventListener('mousedown', (e) => {
+            if (!e.target.closest('.info-panel')) {
+                isDragging = true;
+                document.body.style.cursor = 'grabbing';
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+            document.body.style.cursor = 'move';
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                mouseX = (e.clientX - window.innerWidth / 2) / 10;
+                mouseY = (e.clientY - window.innerHeight / 2) / 10;
+            }
+        });
+
+        // Smooth room rotation
+        function animate() {
+            targetX += (mouseX - targetX) * 0.1;
+            targetY += (mouseY - targetY) * 0.1;
+            
+            room.style.transform = `rotateX(${-targetY}deg) rotateY(${targetX}deg)`;
+            
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        // Server rack interactions
+        const racks = document.querySelectorAll('.server-rack');
+        const panels = document.querySelectorAll('.info-panel');
+        const closeBtns = document.querySelectorAll('.close-btn');
+
+        racks.forEach(rack => {
+            rack.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const panelId = rack.dataset.panel + '-panel';
+                const panel = document.getElementById(panelId);
+                
+                // Close all panels
+                panels.forEach(p => p.classList.remove('active'));
+                
+                // Open clicked panel
+                if (panel) {
+                    panel.classList.add('active');
+                    
+                    // Position panel based on rack position
+                    const rect = rack.getBoundingClientRect();
+                    if (rect.left < window.innerWidth / 2) {
+                        panel.style.left = '20px';
+                        panel.style.right = 'auto';
+                    } else {
+                        panel.style.right = '20px';
+                        panel.style.left = 'auto';
+                    }
+                    panel.style.top = '50%';
+                    panel.style.transform = 'translateY(-50%)';
+                }
+                
+                // Add glow effect to clicked rack
+                rack.style.boxShadow = '0 0 100px rgba(0, 255, 255, 0.8)';
+                setTimeout(() => {
+                    rack.style.boxShadow = '0 0 50px rgba(0, 255, 255, 0.3)';
+                }, 300);
+            });
+            
+            // Hover effect
+            rack.addEventListener('mouseenter', () => {
+                rack.style.transform += ' scale(1.05)';
+                document.body.style.cursor = 'pointer';
+            });
+            
+            rack.addEventListener('mouseleave', () => {
+                rack.style.transform = rack.style.transform.replace(' scale(1.05)', '');
+                if (!isDragging) {
+                    document.body.style.cursor = 'move';
+                }
+            });
+        });
+
+        // Close buttons
+        closeBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                btn.closest('.info-panel').classList.remove('active');
+            });
+        });
+
+        // Form submission
+        document.getElementById('contactForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const status = document.getElementById('formStatus');
+            status.style.color = '#00ffff';
+            status.textContent = 'Transmitting data...';
+            
+            // FORMSPREE INTEGRATION
+            // IMPORTANT: Replace 'YOUR_FORM_ID' with your actual Formspree form ID
+            // Get your form ID from https://formspree.io after creating a form
+            // Example: If your endpoint is https://formspree.io/f/xwkjrndl
+            // Then replace 'YOUR_FORM_ID' with 'xwkjrndl'
+            
+            fetch('https://formspree.io/f/mnnblayg', {  // ← REPLACE YOUR_FORM_ID HERE!
+                method: 'POST',
+                body: new FormData(this),
+                headers: {
+                    'Accept': 'application/json'
+                }
+            }).then(response => {
+                if (response.ok) {
+                    status.textContent = 'Message transmitted successfully! ✓';
+                    status.style.color = '#00ff00';
+                    this.reset();
+                    
+                    setTimeout(() => {
+                        status.textContent = '';
+                    }, 5000);
+                } else {
+                    response.json().then(data => {
+                        if (Object.hasOwn(data, 'errors')) {
+                            status.textContent = 'Transmission error: ' + data["errors"].map(error => error["message"]).join(", ");
+                            status.style.color = '#ff0000';
+                        } else {
+                            status.textContent = 'Transmission error. Please try again.';
+                            status.style.color = '#ff0000';
+                        }
+                    })
+                }
+            }).catch(error => {
+                status.textContent = 'Network error. Please check connection.';
+                status.style.color = '#ff0000';
+            });
+        });
+
+        // Update HUD periodically
+        setInterval(() => {
+            const temp = 18 + Math.random() * 4;
+            const load = 30 + Math.random() * 40;
+            document.querySelector('.hud-item:nth-child(2)').textContent = `Temperature: ${temp.toFixed(1)}°C`;
+            document.querySelector('.hud-item:nth-child(4)').textContent = `Load: ${load.toFixed(0)}%`;
+        }, 3000);
+
+        // Add more particles dynamically
+        setInterval(() => {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDelay = '0s';
+            particle.style.animationDuration = (8 + Math.random() * 4) + 's';
+            room.appendChild(particle);
+            
+            setTimeout(() => {
+                particle.remove();
+            }, 12000);
+        }, 2000);
+    </script>
+</body>
+</html>
