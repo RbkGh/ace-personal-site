@@ -102,6 +102,80 @@
     .philosophy { margin-bottom: 24px; }
     footer { gap: 12px; font-size: 0.72rem; bottom: 14px; }
   }
+
+  .modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+  }
+  .modal-backdrop.active { display: flex; }
+  .modal {
+    background: var(--bg);
+    color: var(--fg);
+    border-radius: 10px;
+    padding: 28px;
+    max-width: 420px;
+    width: 100%;
+    position: relative;
+    border: 1px solid var(--muted);
+  }
+  .modal-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 1.3rem;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .modal-close:hover { color: var(--fg); }
+  .modal h2 { font-size: 1.2rem; margin-bottom: 18px; }
+  .form-group { margin-bottom: 14px; text-align: left; }
+  .form-group label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .form-group input,
+  .form-group textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--muted);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--fg);
+    font-family: inherit;
+    font-size: 0.95rem;
+  }
+  .form-group textarea { resize: vertical; min-height: 80px; }
+  .form-group input:focus,
+  .form-group textarea:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+  .modal-submit {
+    background: var(--accent);
+    color: var(--accent-fg);
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    width: 100%;
+  }
+  .modal-submit:hover { opacity: 0.9; }
+  .form-status { margin-top: 12px; font-size: 0.85rem; min-height: 1.2em; }
+  .form-status.success { color: #3a9d5d; }
+  .form-status.error { color: #c94a4a; }
 </style>
 </head>
 <body>
@@ -119,5 +193,52 @@
     <a href="https://instagram.com/ace_rbk" target="_blank" rel="noopener">Instagram</a>
     <span>PSN: ace_rbk</span>
   </footer>
+
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal">
+      <button class="modal-close" id="closeModalBtn" aria-label="Close">×</button>
+      <h2>Let's talk</h2>
+      <form id="contactForm">
+        <div class="form-group">
+          <label for="name">Name</label>
+          <input type="text" id="name" name="name" required>
+        </div>
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" required>
+        </div>
+        <div class="form-group">
+          <label for="message">Message</label>
+          <textarea id="message" name="message" required></textarea>
+        </div>
+        <button type="submit" class="modal-submit">Send</button>
+      </form>
+      <div class="form-status" id="formStatus"></div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const openBtn = document.getElementById('openModalBtn');
+      const closeBtn = document.getElementById('closeModalBtn');
+      const backdrop = document.getElementById('modalBackdrop');
+
+      function openModal() {
+        backdrop.classList.add('active');
+      }
+      function closeModal() {
+        backdrop.classList.remove('active');
+      }
+
+      openBtn.addEventListener('click', openModal);
+      closeBtn.addEventListener('click', closeModal);
+      backdrop.addEventListener('click', function (e) {
+        if (e.target === backdrop) closeModal();
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeModal();
+      });
+    })();
+  </script>
 </body>
 </html>
