@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ace — Software Engineer</title>
+<script>
+  (function () {
+    var saved = localStorage.getItem('theme');
+    if (saved === 'light' || saved === 'dark') {
+      document.documentElement.setAttribute('data-theme', saved);
+    }
+  })();
+</script>
 <style>
   :root {
     --bg: #f7f6f3;
@@ -13,13 +21,20 @@
     --accent-fg: #17161a;
   }
   @media (prefers-color-scheme: dark) {
-    :root {
+    :root:not([data-theme="light"]) {
       --bg: #0d0d0f;
       --fg: #f2f1ee;
       --muted: #918f95;
       --accent: #d98b62;
       --accent-fg: #0d0d0f;
     }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0d0d0f;
+    --fg: #f2f1ee;
+    --muted: #918f95;
+    --accent: #d98b62;
+    --accent-fg: #0d0d0f;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { height: 100%; }
@@ -103,6 +118,39 @@
     footer { gap: 12px; font-size: 0.72rem; bottom: 14px; }
   }
 
+  .theme-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    gap: 2px;
+    background: rgba(128, 128, 128, 0.12);
+    border-radius: 6px;
+    padding: 2px;
+    z-index: 10;
+  }
+  .theme-toggle button {
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-size: 0.7rem;
+    padding: 5px 9px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .theme-toggle button.active {
+    background: var(--accent);
+    color: var(--accent-fg);
+  }
+  .theme-toggle button:hover:not(.active) { color: var(--fg); }
+
+  @media (max-width: 480px) {
+    .theme-toggle { top: 14px; right: 14px; }
+    .theme-toggle button { padding: 4px 7px; font-size: 0.65rem; }
+  }
+
   .modal-backdrop {
     display: none;
     position: fixed;
@@ -179,6 +227,12 @@
 </style>
 </head>
 <body>
+  <div class="theme-toggle" id="themeToggle">
+    <button type="button" data-theme-choice="light">Light</button>
+    <button type="button" data-theme-choice="dark">Dark</button>
+    <button type="button" data-theme-choice="system">Auto</button>
+  </div>
+
   <div class="container">
     <div class="wordmark">ACE<span class="realname">Rodney Boachie</span></div>
     <h1>I build systems that don't fall over.</h1>
@@ -219,6 +273,30 @@
 
   <script>
     (function () {
+      const themeToggle = document.getElementById('themeToggle');
+      const themeButtons = themeToggle.querySelectorAll('button');
+
+      function applyTheme(choice) {
+        if (choice === 'light' || choice === 'dark') {
+          document.documentElement.setAttribute('data-theme', choice);
+        } else {
+          document.documentElement.removeAttribute('data-theme');
+        }
+        themeButtons.forEach(function (btn) {
+          btn.classList.toggle('active', btn.dataset.themeChoice === choice);
+        });
+      }
+
+      applyTheme(localStorage.getItem('theme') || 'system');
+
+      themeButtons.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          const choice = btn.dataset.themeChoice;
+          localStorage.setItem('theme', choice);
+          applyTheme(choice);
+        });
+      });
+
       const openBtn = document.getElementById('openModalBtn');
       const closeBtn = document.getElementById('closeModalBtn');
       const backdrop = document.getElementById('modalBackdrop');

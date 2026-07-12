@@ -28,7 +28,7 @@ Exact copy is a first draft and may be tweaked after seeing it rendered, without
 
 ## Visual System
 
-- **Theme:** Respects `prefers-color-scheme` (no manual toggle). Dark mode: near-black background, off-white text. Light mode: off-white background, near-black text. Same layout, inverted palette.
+- **Theme:** Defaults to `prefers-color-scheme`, overridable via a manual toggle. Dark mode: near-black background, off-white text. Light mode: off-white background, near-black text. Same layout, inverted palette. A three-way segmented control (`Light` / `Dark` / `Auto`) sits in the top-right corner; the chosen preference persists via `localStorage` and is applied before first paint to avoid a flash of the wrong theme. `Auto` (the default) tracks the OS setting live.
 - **Typography:** System font stack (`-apple-system, "Inter", "Segoe UI", sans-serif`). Headline large and bold (weight 700), everything else restrained (weight 400). Headline scales via `clamp()` for responsive sizing.
 - **Accent color:** One muted copper/amber accent (~`#c9754a`), used sparingly — CTA button and hover states only. Replaces the old cyan; deliberately distinct from typical tech-blue.
 
@@ -50,14 +50,14 @@ Exact copy is a first draft and may be tweaked after seeing it rendered, without
 
 - No email/mailto link in the footer (modal form is the only direct-contact path).
 - No multi-page structure, no downloadable resume/CV link.
-- No manual light/dark toggle (system preference only).
-- No animations/effects beyond simple hover/transition states on the CTA and modal.
+- No animations/effects beyond simple hover/transition states on the CTA, modal, and theme toggle.
 
 ## Testing / Verification Plan
 
 Static HTML/CSS/JS, no build step — verified by opening the file directly in a browser:
 
 - Visual check in both light and dark OS theme.
+- Theme toggle: clicking Light/Dark/Auto updates the palette immediately, the correct option is visually marked active, and the choice persists across a page reload.
 - Visual + interaction check at desktop and mobile viewport widths (confirm no scrollbars appear at common sizes).
 - CTA opens modal; × and click-outside both close it.
 - Form submit success path and error path both produce correct inline messaging.
