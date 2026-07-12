@@ -1,356 +1,462 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ace — Software Engineer</title>
-<script>
-  (function () {
-    var saved = localStorage.getItem('theme');
-    if (saved === 'light' || saved === 'dark') {
-      document.documentElement.setAttribute('data-theme', saved);
-    }
-  })();
-</script>
-<style>
-  :root {
-    --bg: #f7f6f3;
-    --fg: #17161a;
-    --muted: #6f6d72;
-    --accent: #c9754a;
-    --accent-fg: #17161a;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #0d0d0f;
-      --fg: #f2f1ee;
-      --muted: #918f95;
-      --accent: #d98b62;
-      --accent-fg: #0d0d0f;
-    }
-  }
-  :root[data-theme="dark"] {
-    --bg: #0d0d0f;
-    --fg: #f2f1ee;
-    --muted: #918f95;
-    --accent: #d98b62;
-    --accent-fg: #0d0d0f;
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { height: 100%; }
-  body {
-    background: var(--bg);
-    color: var(--fg);
-    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
-    min-height: 100vh;
-    min-height: 100dvh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    padding: 24px;
-  }
-  .container { max-width: 640px; text-align: center; }
-  .wordmark {
-    font-weight: 700;
-    font-size: 1rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-  .realname {
-    display: block;
-    font-weight: 400;
-    font-size: 0.8rem;
-    color: var(--muted);
-    margin-top: 2px;
-    letter-spacing: 0.02em;
-    text-transform: none;
-  }
-  h1 {
-    font-size: clamp(1.75rem, 5vw, 3rem);
-    font-weight: 700;
-    line-height: 1.15;
-    margin: 28px 0 16px;
-  }
-  .philosophy {
-    font-size: clamp(0.95rem, 2.2vw, 1.15rem);
-    color: var(--muted);
-    line-height: 1.5;
-    max-width: 46ch;
-    margin: 0 auto 32px;
-  }
-  .cta {
-    display: inline-block;
-    background: var(--accent);
-    color: var(--accent-fg);
-    border: none;
-    padding: 14px 28px;
-    font-size: 1rem;
-    font-weight: 600;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: transform 0.15s ease, opacity 0.15s ease;
-    font-family: inherit;
-  }
-  .cta:hover { transform: translateY(-1px); opacity: 0.9; }
-  .cta:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-
-  footer {
-    position: fixed;
-    bottom: 20px;
-    left: 0;
-    right: 0;
-    display: flex;
-    justify-content: center;
-    gap: 18px;
-    flex-wrap: wrap;
-    font-size: 0.8rem;
-  }
-  footer a, footer span {
-    color: var(--muted);
-    text-decoration: none;
-  }
-  footer a:hover { color: var(--fg); }
-
-  @media (max-width: 480px) {
-    h1 { margin: 20px 0 12px; }
-    .philosophy { margin-bottom: 24px; }
-    footer { gap: 12px; font-size: 0.72rem; bottom: 14px; }
-  }
-
-  .theme-toggle {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    display: flex;
-    gap: 2px;
-    background: rgba(128, 128, 128, 0.12);
-    border-radius: 6px;
-    padding: 2px;
-    z-index: 10;
-  }
-  .theme-toggle button {
-    border: none;
-    background: transparent;
-    color: var(--muted);
-    font-size: 0.7rem;
-    padding: 5px 9px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-family: inherit;
-    transition: background 0.15s ease, color 0.15s ease;
-  }
-  .theme-toggle button.active {
-    background: var(--accent);
-    color: var(--accent-fg);
-  }
-  .theme-toggle button:hover:not(.active) { color: var(--fg); }
-
-  @media (max-width: 480px) {
-    .theme-toggle { top: 14px; right: 14px; }
-    .theme-toggle button { padding: 4px 7px; font-size: 0.65rem; }
-  }
-
-  .modal-backdrop {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    padding: 20px;
-  }
-  .modal-backdrop.active { display: flex; }
-  .modal {
-    background: var(--bg);
-    color: var(--fg);
-    border-radius: 10px;
-    padding: 28px;
-    max-width: 420px;
-    width: 100%;
-    position: relative;
-    border: 1px solid var(--muted);
-  }
-  .modal-close {
-    position: absolute;
-    top: 14px;
-    right: 14px;
-    background: none;
-    border: none;
-    color: var(--muted);
-    font-size: 1.3rem;
-    cursor: pointer;
-    line-height: 1;
-  }
-  .modal-close:hover { color: var(--fg); }
-  .modal h2 { font-size: 1.2rem; margin-bottom: 18px; }
-  .form-group { margin-bottom: 14px; text-align: left; }
-  .form-group label {
-    display: block;
-    font-size: 0.8rem;
-    color: var(--muted);
-    margin-bottom: 4px;
-  }
-  .form-group input,
-  .form-group textarea {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid var(--muted);
-    border-radius: 6px;
-    background: transparent;
-    color: var(--fg);
-    font-family: inherit;
-    font-size: 0.95rem;
-  }
-  .form-group textarea { resize: vertical; min-height: 80px; }
-  .form-group input:focus,
-  .form-group textarea:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 1px;
-  }
-  .modal-submit {
-    background: var(--accent);
-    color: var(--accent-fg);
-    border: none;
-    padding: 10px 20px;
-    border-radius: 6px;
-    font-weight: 600;
-    cursor: pointer;
-    font-family: inherit;
-    width: 100%;
-  }
-  .modal-submit:hover { opacity: 0.9; }
-  .form-status { margin-top: 12px; font-size: 0.85rem; min-height: 1.2em; }
-  .form-status.success { color: #3a9d5d; }
-  .form-status.error { color: #c94a4a; }
-</style>
-</head>
-<body>
-  <div class="theme-toggle" id="themeToggle">
-    <button type="button" data-theme-choice="light">Light</button>
-    <button type="button" data-theme-choice="dark">Dark</button>
-    <button type="button" data-theme-choice="system">Auto</button>
-  </div>
-
-  <div class="container">
-    <div class="wordmark">ACE<span class="realname">Rodney Boachie</span></div>
-    <h1>I build systems that don't fall over.</h1>
-    <p class="philosophy">I care less about the stack than whether the logic holds — across backend, frontend, mobile, and infrastructure, that's the thread.</p>
-    <button class="cta" id="openModalBtn">Let's talk →</button>
-  </div>
-
-  <footer>
-    <a href="https://github.com/rbkgh" target="_blank" rel="noopener">GitHub</a>
-    <a href="https://linkedin.com/in/rodney-boachie" target="_blank" rel="noopener">LinkedIn</a>
-    <a href="https://twitter.com/ace_rbk" target="_blank" rel="noopener">Twitter</a>
-    <a href="https://instagram.com/ace_rbk" target="_blank" rel="noopener">Instagram</a>
-    <span>PSN: ace_rbk</span>
-  </footer>
-
-  <div class="modal-backdrop" id="modalBackdrop">
-    <div class="modal">
-      <button class="modal-close" id="closeModalBtn" aria-label="Close">×</button>
-      <h2>Let's talk</h2>
-      <form id="contactForm">
-        <div class="form-group">
-          <label for="name">Name</label>
-          <input type="text" id="name" name="name" required>
-        </div>
-        <div class="form-group">
-          <label for="email">Email</label>
-          <input type="email" id="email" name="email" required>
-        </div>
-        <div class="form-group">
-          <label for="message">Message</label>
-          <textarea id="message" name="message" required></textarea>
-        </div>
-        <button type="submit" class="modal-submit">Send</button>
-      </form>
-      <div class="form-status" id="formStatus"></div>
-    </div>
-  </div>
-
-  <script>
-    (function () {
-      const themeToggle = document.getElementById('themeToggle');
-      const themeButtons = themeToggle.querySelectorAll('button');
-
-      function applyTheme(choice) {
-        if (choice === 'light' || choice === 'dark') {
-          document.documentElement.setAttribute('data-theme', choice);
-        } else {
-          document.documentElement.removeAttribute('data-theme');
-        }
-        themeButtons.forEach(function (btn) {
-          btn.classList.toggle('active', btn.dataset.themeChoice === choice);
-        });
-      }
-
-      applyTheme(localStorage.getItem('theme') || 'system');
-
-      themeButtons.forEach(function (btn) {
-        btn.addEventListener('click', function () {
-          const choice = btn.dataset.themeChoice;
-          localStorage.setItem('theme', choice);
-          applyTheme(choice);
-        });
-      });
-
-      const openBtn = document.getElementById('openModalBtn');
-      const closeBtn = document.getElementById('closeModalBtn');
-      const backdrop = document.getElementById('modalBackdrop');
-
-      function openModal() {
-        backdrop.classList.add('active');
-      }
-      function closeModal() {
-        backdrop.classList.remove('active');
-      }
-
-      openBtn.addEventListener('click', openModal);
-      closeBtn.addEventListener('click', closeModal);
-      backdrop.addEventListener('click', function (e) {
-        if (e.target === backdrop) closeModal();
-      });
-      document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') closeModal();
-      });
-
-      const form = document.getElementById('contactForm');
-      const status = document.getElementById('formStatus');
-
-      form.addEventListener('submit', function (e) {
-        e.preventDefault();
-        status.textContent = 'Sending...';
-        status.className = 'form-status';
-
-        fetch('https://formspree.io/f/mnnblayg', {
-          method: 'POST',
-          body: new FormData(form),
-          headers: { Accept: 'application/json' }
-        })
-          .then(function (response) {
-            if (response.ok) {
-              status.textContent = "Message sent — thanks, I'll be in touch.";
-              status.className = 'form-status success';
-              form.reset();
-            } else {
-              return response.json().then(function (data) {
-                const msg = data && data.errors
-                  ? data.errors.map(function (err) { return err.message; }).join(', ')
-                  : 'Something went wrong. Please try again.';
-                status.textContent = msg;
-                status.className = 'form-status error';
-              });
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Ace — Software Engineer</title>
+        <script>
+            (function () {
+                var saved = localStorage.getItem("theme");
+                if (saved === "light" || saved === "dark") {
+                    document.documentElement.setAttribute("data-theme", saved);
+                }
+            })();
+        </script>
+        <style>
+            :root {
+                --bg: #f7f6f3;
+                --fg: #17161a;
+                --muted: #6f6d72;
+                --accent: #c9754a;
+                --accent-fg: #17161a;
             }
-          })
-          .catch(function () {
-            status.textContent = 'Network error. Please check your connection.';
-            status.className = 'form-status error';
-          });
-      });
-    })();
-  </script>
-</body>
+            @media (prefers-color-scheme: dark) {
+                :root:not([data-theme="light"]) {
+                    --bg: #0d0d0f;
+                    --fg: #f2f1ee;
+                    --muted: #918f95;
+                    --accent: #d98b62;
+                    --accent-fg: #0d0d0f;
+                }
+            }
+            :root[data-theme="dark"] {
+                --bg: #0d0d0f;
+                --fg: #f2f1ee;
+                --muted: #918f95;
+                --accent: #d98b62;
+                --accent-fg: #0d0d0f;
+            }
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            html,
+            body {
+                height: 100%;
+            }
+            body {
+                background: var(--bg);
+                color: var(--fg);
+                font-family:
+                    -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI",
+                    sans-serif;
+                min-height: 100vh;
+                min-height: 100dvh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                overflow: hidden;
+                padding: 24px;
+            }
+            .container {
+                max-width: 640px;
+                text-align: center;
+            }
+            .wordmark {
+                font-weight: 700;
+                font-size: 1rem;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+            }
+            .realname {
+                display: block;
+                font-weight: 400;
+                font-size: 0.8rem;
+                color: var(--muted);
+                margin-top: 2px;
+                letter-spacing: 0.02em;
+                text-transform: none;
+            }
+            h1 {
+                font-size: clamp(1.75rem, 5vw, 3rem);
+                font-weight: 700;
+                line-height: 1.15;
+                margin: 28px 0 16px;
+            }
+            .philosophy {
+                font-size: clamp(0.95rem, 2.2vw, 1.15rem);
+                color: var(--muted);
+                line-height: 1.5;
+                max-width: 46ch;
+                margin: 0 auto 32px;
+            }
+            .cta {
+                display: inline-block;
+                background: var(--accent);
+                color: var(--accent-fg);
+                border: none;
+                padding: 14px 28px;
+                font-size: 1rem;
+                font-weight: 600;
+                border-radius: 6px;
+                cursor: pointer;
+                transition:
+                    transform 0.15s ease,
+                    opacity 0.15s ease;
+                font-family: inherit;
+            }
+            .cta:hover {
+                transform: translateY(-1px);
+                opacity: 0.9;
+            }
+            .cta:focus-visible {
+                outline: 2px solid var(--accent);
+                outline-offset: 3px;
+            }
+
+            footer {
+                position: fixed;
+                bottom: 20px;
+                left: 0;
+                right: 0;
+                display: flex;
+                justify-content: center;
+                gap: 18px;
+                flex-wrap: wrap;
+                font-size: 0.8rem;
+            }
+            footer a,
+            footer span {
+                color: var(--muted);
+                text-decoration: none;
+            }
+            footer a:hover {
+                color: var(--fg);
+            }
+
+            @media (max-width: 480px) {
+                h1 {
+                    margin: 20px 0 12px;
+                }
+                .philosophy {
+                    margin-bottom: 24px;
+                }
+                footer {
+                    gap: 12px;
+                    font-size: 0.72rem;
+                    bottom: 14px;
+                }
+            }
+
+            .theme-toggle {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                display: flex;
+                gap: 2px;
+                background: rgba(128, 128, 128, 0.12);
+                border-radius: 6px;
+                padding: 2px;
+                z-index: 10;
+            }
+            .theme-toggle button {
+                border: none;
+                background: transparent;
+                color: var(--muted);
+                font-size: 0.7rem;
+                padding: 5px 9px;
+                border-radius: 4px;
+                cursor: pointer;
+                font-family: inherit;
+                transition:
+                    background 0.15s ease,
+                    color 0.15s ease;
+            }
+            .theme-toggle button.active {
+                background: var(--accent);
+                color: var(--accent-fg);
+            }
+            .theme-toggle button:hover:not(.active) {
+                color: var(--fg);
+            }
+
+            @media (max-width: 480px) {
+                .theme-toggle {
+                    top: 14px;
+                    right: 14px;
+                }
+                .theme-toggle button {
+                    padding: 4px 7px;
+                    font-size: 0.65rem;
+                }
+            }
+
+            .modal-backdrop {
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(0, 0, 0, 0.5);
+                align-items: center;
+                justify-content: center;
+                z-index: 1000;
+                padding: 20px;
+            }
+            .modal-backdrop.active {
+                display: flex;
+            }
+            .modal {
+                background: var(--bg);
+                color: var(--fg);
+                border-radius: 10px;
+                padding: 28px;
+                max-width: 420px;
+                width: 100%;
+                position: relative;
+                border: 1px solid var(--muted);
+            }
+            .modal-close {
+                position: absolute;
+                top: 14px;
+                right: 14px;
+                background: none;
+                border: none;
+                color: var(--muted);
+                font-size: 1.3rem;
+                cursor: pointer;
+                line-height: 1;
+            }
+            .modal-close:hover {
+                color: var(--fg);
+            }
+            .modal h2 {
+                font-size: 1.2rem;
+                margin-bottom: 18px;
+            }
+            .form-group {
+                margin-bottom: 14px;
+                text-align: left;
+            }
+            .form-group label {
+                display: block;
+                font-size: 0.8rem;
+                color: var(--muted);
+                margin-bottom: 4px;
+            }
+            .form-group input,
+            .form-group textarea {
+                width: 100%;
+                padding: 10px;
+                border: 1px solid var(--muted);
+                border-radius: 6px;
+                background: transparent;
+                color: var(--fg);
+                font-family: inherit;
+                font-size: 0.95rem;
+            }
+            .form-group textarea {
+                resize: vertical;
+                min-height: 80px;
+            }
+            .form-group input:focus,
+            .form-group textarea:focus {
+                outline: 2px solid var(--accent);
+                outline-offset: 1px;
+            }
+            .modal-submit {
+                background: var(--accent);
+                color: var(--accent-fg);
+                border: none;
+                padding: 10px 20px;
+                border-radius: 6px;
+                font-weight: 600;
+                cursor: pointer;
+                font-family: inherit;
+                width: 100%;
+            }
+            .modal-submit:hover {
+                opacity: 0.9;
+            }
+            .form-status {
+                margin-top: 12px;
+                font-size: 0.85rem;
+                min-height: 1.2em;
+            }
+            .form-status.success {
+                color: #3a9d5d;
+            }
+            .form-status.error {
+                color: #c94a4a;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="theme-toggle" id="themeToggle">
+            <button type="button" data-theme-choice="light">Light</button>
+            <button type="button" data-theme-choice="dark">Dark</button>
+            <button type="button" data-theme-choice="system">Auto</button>
+        </div>
+
+        <div class="container">
+            <div class="wordmark">
+                ACE<span class="realname">Rodney Boachie</span>
+            </div>
+            <h1>I build systems that don't stress under stress.</h1>
+            <p class="philosophy">
+                Been architecting and cooking softwaresince 2014 across backend,
+                frontend, mobile, and infrastructure, that's the dig!
+            </p>
+            <button class="cta" id="openModalBtn">Let's talk →</button>
+        </div>
+
+        <footer>
+            <a href="https://github.com/rbkgh" target="_blank" rel="noopener"
+                >GitHub</a
+            >
+            <a
+                href="https://linkedin.com/in/rodney-boachie"
+                target="_blank"
+                rel="noopener"
+                >LinkedIn</a
+            >
+            <a href="https://twitter.com/ace_rbk" target="_blank" rel="noopener"
+                >X</a
+            >
+            <a
+                href="https://instagram.com/ace_rbk"
+                target="_blank"
+                rel="noopener"
+                >Instagram</a
+            >
+            <span>PSN: ace_rbk</span>
+        </footer>
+
+        <div class="modal-backdrop" id="modalBackdrop">
+            <div class="modal">
+                <button
+                    class="modal-close"
+                    id="closeModalBtn"
+                    aria-label="Close"
+                >
+                    ×
+                </button>
+                <h2>Let's talk</h2>
+                <form id="contactForm">
+                    <div class="form-group">
+                        <label for="name">Name</label>
+                        <input type="text" id="name" name="name" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="message">Message</label>
+                        <textarea
+                            id="message"
+                            name="message"
+                            required
+                        ></textarea>
+                    </div>
+                    <button type="submit" class="modal-submit">Send</button>
+                </form>
+                <div class="form-status" id="formStatus"></div>
+            </div>
+        </div>
+
+        <script>
+            (function () {
+                const themeToggle = document.getElementById("themeToggle");
+                const themeButtons = themeToggle.querySelectorAll("button");
+
+                function applyTheme(choice) {
+                    if (choice === "light" || choice === "dark") {
+                        document.documentElement.setAttribute(
+                            "data-theme",
+                            choice,
+                        );
+                    } else {
+                        document.documentElement.removeAttribute("data-theme");
+                    }
+                    themeButtons.forEach(function (btn) {
+                        btn.classList.toggle(
+                            "active",
+                            btn.dataset.themeChoice === choice,
+                        );
+                    });
+                }
+
+                applyTheme(localStorage.getItem("theme") || "system");
+
+                themeButtons.forEach(function (btn) {
+                    btn.addEventListener("click", function () {
+                        const choice = btn.dataset.themeChoice;
+                        localStorage.setItem("theme", choice);
+                        applyTheme(choice);
+                    });
+                });
+
+                const openBtn = document.getElementById("openModalBtn");
+                const closeBtn = document.getElementById("closeModalBtn");
+                const backdrop = document.getElementById("modalBackdrop");
+
+                function openModal() {
+                    backdrop.classList.add("active");
+                }
+                function closeModal() {
+                    backdrop.classList.remove("active");
+                }
+
+                openBtn.addEventListener("click", openModal);
+                closeBtn.addEventListener("click", closeModal);
+                backdrop.addEventListener("click", function (e) {
+                    if (e.target === backdrop) closeModal();
+                });
+                document.addEventListener("keydown", function (e) {
+                    if (e.key === "Escape") closeModal();
+                });
+
+                const form = document.getElementById("contactForm");
+                const status = document.getElementById("formStatus");
+
+                form.addEventListener("submit", function (e) {
+                    e.preventDefault();
+                    status.textContent = "Sending...";
+                    status.className = "form-status";
+
+                    fetch("https://formspree.io/f/mnnblayg", {
+                        method: "POST",
+                        body: new FormData(form),
+                        headers: { Accept: "application/json" },
+                    })
+                        .then(function (response) {
+                            if (response.ok) {
+                                status.textContent =
+                                    "Message sent — thanks, I'll be in touch.";
+                                status.className = "form-status success";
+                                form.reset();
+                            } else {
+                                return response.json().then(function (data) {
+                                    const msg =
+                                        data && data.errors
+                                            ? data.errors
+                                                  .map(function (err) {
+                                                      return err.message;
+                                                  })
+                                                  .join(", ")
+                                            : "Something went wrong. Please try again.";
+                                    status.textContent = msg;
+                                    status.className = "form-status error";
+                                });
+                            }
+                        })
+                        .catch(function () {
+                            status.textContent =
+                                "Network error. Please check your connection.";
+                            status.className = "form-status error";
+                        });
+                });
+            })();
+        </script>
+    </body>
 </html>
