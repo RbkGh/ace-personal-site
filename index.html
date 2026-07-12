@@ -238,6 +238,40 @@
       document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') closeModal();
       });
+
+      const form = document.getElementById('contactForm');
+      const status = document.getElementById('formStatus');
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        status.textContent = 'Sending...';
+        status.className = 'form-status';
+
+        fetch('https://formspree.io/f/mnnblayg', {
+          method: 'POST',
+          body: new FormData(form),
+          headers: { Accept: 'application/json' }
+        })
+          .then(function (response) {
+            if (response.ok) {
+              status.textContent = "Message sent — thanks, I'll be in touch.";
+              status.className = 'form-status success';
+              form.reset();
+            } else {
+              return response.json().then(function (data) {
+                const msg = data && data.errors
+                  ? data.errors.map(function (err) { return err.message; }).join(', ')
+                  : 'Something went wrong. Please try again.';
+                status.textContent = msg;
+                status.className = 'form-status error';
+              });
+            }
+          })
+          .catch(function () {
+            status.textContent = 'Network error. Please check your connection.';
+            status.className = 'form-status error';
+          });
+      });
     })();
   </script>
 </body>
