@@ -36,6 +36,60 @@
                 --accent: #d98b62;
                 --accent-fg: #0d0d0f;
             }
+            .ambient-glow {
+                position: fixed;
+                inset: 0;
+                z-index: 0;
+                pointer-events: none;
+                overflow: hidden;
+            }
+            .glow {
+                position: absolute;
+                border-radius: 50%;
+                background: var(--accent);
+                filter: blur(120px);
+                will-change: transform;
+            }
+            .glow-a {
+                top: -15%;
+                left: -15%;
+                width: 60vmax;
+                height: 60vmax;
+                opacity: 0.09;
+                animation: drift-a 34s ease-in-out infinite;
+            }
+            .glow-b {
+                bottom: -20%;
+                right: -15%;
+                width: 50vmax;
+                height: 50vmax;
+                opacity: 0.06;
+                animation: drift-b 42s ease-in-out infinite;
+            }
+            @keyframes drift-a {
+                0%,
+                100% {
+                    transform: translate(0, 0);
+                }
+                50% {
+                    transform: translate(10vmax, 8vmax);
+                }
+            }
+            @keyframes drift-b {
+                0%,
+                100% {
+                    transform: translate(0, 0);
+                }
+                50% {
+                    transform: translate(-8vmax, -10vmax);
+                }
+            }
+            @media (prefers-reduced-motion: reduce) {
+                .glow-a,
+                .glow-b {
+                    animation: none;
+                }
+            }
             * {
                 margin: 0;
                 padding: 0;
@@ -60,6 +114,8 @@
                 padding: 24px;
             }
             .container {
+                position: relative;
+                z-index: 1;
                 max-width: 640px;
                 text-align: center;
             }
@@ -120,6 +176,7 @@
                 bottom: 20px;
                 left: 0;
                 right: 0;
+                z-index: 1;
                 display: flex;
                 justify-content: center;
                 gap: 18px;
@@ -291,6 +348,11 @@
         </style>
     </head>
     <body>
+        <div class="ambient-glow">
+            <div class="glow glow-a"></div>
+            <div class="glow glow-b"></div>
+        </div>
+
         <div class="theme-toggle" id="themeToggle">
             <button type="button" data-theme-choice="light">Light</button>
             <button type="button" data-theme-choice="dark">Dark</button>
