@@ -16,7 +16,7 @@ Needs Node 22 or newer for the tests (`node --test` globs) and a Vercel account 
 2. `cp .env.example .env` and fill it in (never commit `.env`; it is git-ignored).
 3. `npx vercel link` (pick the `ace-personal-site` project).
 4. Optional: `npx vercel env pull .env` to pull the project's env vars instead of filling them by hand.
-5. `npx vercel dev` serves the static site and the `/api` functions.
+5. `npx vercel dev` serves the static site and the `/api` functions. Visits made locally are not recorded (collect only writes in Production).
 6. `npm test` runs the unit and API tests (`node --test "tests/**/*.test.js"`). They use an in-memory Postgres (PGlite), so no database is needed.
 7. `npm run test:e2e` runs the Playwright resilience tests. Run `npx playwright install chromium` once first, or set `PW_CHANNEL=chrome` to use an installed Chrome.
 
@@ -30,7 +30,7 @@ Needs Node 22 or newer for the tests (`node --test` globs) and a Vercel account 
    ```
    DATABASE_URL="postgres://..." npm run db:migrate
    ```
-   (or put it in `.env` and `export $(cat .env | xargs)`). The script runs `db/schema.sql` and prints `Applied N statements.`
+   (or put it in `.env` and load it with `set -a; source .env; set +a`). The script runs `db/schema.sql` and prints `Applied N statements.`
 
 ### 2. Environment variables
 
@@ -41,7 +41,7 @@ Needs Node 22 or newer for the tests (`node --test` globs) and a Vercel account 
 | `SESSION_SECRET` | Signs the `ace_dash` login cookie (HMAC-SHA256, 7-day expiry) | `openssl rand -hex 32` |
 | `CRON_SECRET` | Authenticates the daily cron call; Vercel sends `Authorization: Bearer $CRON_SECRET` automatically when it is set | `openssl rand -hex 32` |
 
-Set them for Production (and Development if you use `vercel dev`):
+Set them for Production. Development values are optional: `/api/collect` only writes when `VERCEL_ENV` is `production`, so local `vercel dev` never records visits (the dashboard still works locally if you set the Development vars). Do not point Development at the production database.
 
 - Dashboard: Vercel project, Settings, Environment Variables, or
 - CLI: `npx vercel env add DATABASE_URL production` (repeat for each name), then redeploy.
@@ -81,12 +81,12 @@ After a successful login the dashboard sets `localStorage.ace_analytics_optout =
   - Vercel Web Analytics: remove the `/_vercel/insights/script.js` tag from `index.html` (or disable it in the Analytics tab).
   - Own tracker/database: remove `DATABASE_URL` from Vercel and redeploy; collect then accepts hits and writes nothing.
 - **When analytics is down:** the site is unaffected. All analytics scripts load async and fail silently; `/api/collect` always answers `204` quickly (1.5 s DB timeout) and logs errors with `console.error`; missing env vars or a blocked tracker or GA4 script never break rendering, the theme toggle, the contact modal or the form. `npm run test:e2e` covers these cases.
-- **Consent model:** before a choice or after Decline, only anonymous page views/events are stored (no visitor ID, session ID or IP; geo from Vercel headers is kept). After Accept, a visitor ID (1 year), session ID (30 min inactivity) and IP are stored, and GA4 loads if configured.
+- **Consent model:** before a choice or after Decline, only anonymous page views/events are stored (no visitor ID, session ID or IP; geo from Vercel headers is kept). After Accept, a visitor ID (1 year), session ID (30 min inactivity) and IP are stored, and GA4 loads if configured. The page on which someone clicks Accept was already recorded anonymously, so the tracker sends a `consent` hit that back-fills that page view's visitor ID, session ID and IP (only if it has none yet). Decline stops GA4 on the current page (`ga-disable-<ID>`) and the tracker stops sending IDs.
 
 ## Troubleshooting
 
 **No data arriving**
-1. `/api/collect` only writes when `VERCEL_ENV` is `production` or `development`. Preview deployments accept hits but do not write.
+1. `/api/collect` only writes when `VERCEL_ENV` is `production`. Preview deployments and local `vercel dev` accept hits but do not write.
 2. Origin must be `https://rodneyboachie.com`, `https://www.rodneyboachie.com`, `https://ace-personal-site.vercel.app` or `http://localhost:*` (falls back to the Referer host if there is no Origin; neither present is rejected).
 3. Check function logs in Vercel for `console.error` output (usually a bad `DATABASE_URL` or missing schema; run `npm run db:migrate`).
 4. Check your own browser for the opt-out flag: `localStorage.getItem("ace_analytics_optout")`. Use a private window or clear it.
