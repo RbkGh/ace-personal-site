@@ -90,7 +90,7 @@ After a successful login the dashboard sets `localStorage.ace_analytics_optout =
 2. Origin must be `https://rodneyboachie.com`, `https://www.rodneyboachie.com`, `https://ace-personal-site.vercel.app` or `http://localhost:*` (falls back to the Referer host if there is no Origin; neither present is rejected).
 3. Check function logs in Vercel for `console.error` output (usually a bad `DATABASE_URL` or missing schema; run `npm run db:migrate`).
 4. Check your own browser for the opt-out flag: `localStorage.getItem("ace_analytics_optout")`. Use a private window or clear it.
-5. Ad blockers and Do Not Track settings can hide the Vercel script; that is expected.
+5. Ad blockers can hide the analytics scripts; that is expected.
 
 **Dashboard login fails**
 - Confirm `DASHBOARD_PASSWORD` and `SESSION_SECRET` are set for the Production environment, then redeploy (env var changes only apply to new deployments).
