@@ -1,0 +1,6 @@
+{
+  "cleanUrls": true,
+  "rewrites": [{ "source": "/dashboard", "destination": "/api/dashboard-page" }],
+  "crons": [{ "path": "/api/cron/anonymize-ips", "schedule": "0 3 * * *" }],
+  "functions": { "api/dashboard-page.js": { "includeFiles": "dashboard/**" } }
+}
