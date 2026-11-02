@@ -151,7 +151,9 @@
             }
             function csvCell(v) {
                 v = v == null ? "" : String(v);
-                return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+                // Stop spreadsheets treating a value as a formula.
+                if (/^[=+\-@\t\r]/.test(v)) v = "'" + v;
+                return /[",\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
             }
             function downloadCsv() {
                 var keys = ["created_at", "path", "referrer_domain", "country", "city", "device", "browser", "os", "ip", "utm_campaign"];

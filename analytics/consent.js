@@ -6,7 +6,7 @@ try {
 .ace-consent{position:fixed;left:50%;bottom:64px;transform:translateX(-50%);z-index:50;
   max-width:min(440px,calc(100vw - 24px));box-sizing:border-box;padding:12px 14px;
   background:var(--bg);color:var(--fg);border:1px solid var(--muted,#888);border-radius:10px;
-  font:0.78rem/1.45 inherit;font-family:inherit;box-shadow:0 4px 18px rgba(0,0,0,.18)}
+  font-size:0.78rem;line-height:1.45;font-family:inherit;box-shadow:0 4px 18px rgba(0,0,0,.18)}
 .ace-consent p{margin:0 0 10px}
 .ace-consent a{color:var(--accent);text-decoration:underline}
 .ace-consent-actions{display:flex;gap:8px}
@@ -16,11 +16,20 @@ try {
 .ace-consent button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 @media (max-width:480px){.ace-consent{bottom:84px}}`;
 
+  // gtag honours window['ga-disable-<ID>']: true stops it sending anything further.
+  function setGADisabled(disabled) {
+    try {
+      if (GA_MEASUREMENT_ID) window["ga-disable-" + GA_MEASUREMENT_ID] = disabled;
+    } catch {}
+  }
+
   let gaLoaded = false;
   function loadGA() {
     try {
-      if (!GA_MEASUREMENT_ID || gaLoaded || isOptedOut(localStorage)) return;
+      if (!GA_MEASUREMENT_ID || isOptedOut(localStorage)) return;
       if (getConsent(localStorage) !== "accepted") return;
+      setGADisabled(false);
+      if (gaLoaded) return;
       gaLoaded = true;
       window.dataLayer = window.dataLayer || [];
       window.gtag = function () { window.dataLayer.push(arguments); };
@@ -59,6 +68,7 @@ try {
         try {
           const choice = btn.getAttribute("data-choice");
           setConsent(localStorage, choice);
+          if (choice === "declined") setGADisabled(true);
           banner.remove();
           banner = null;
           window.dispatchEvent(new CustomEvent("ace:consent", { detail: choice }));
