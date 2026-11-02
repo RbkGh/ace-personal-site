@@ -47,6 +47,22 @@ The website must keep working fully — page renders, theme toggle, "Let's talk"
 - **Dashboard isolated:** dashboard/API failures affect only `/dashboard`, never the public site.
 - **Verified:** the plan must include a check that the site still works with analytics scripts blocked and with the database unavailable.
 
+## README (Rodney's decision)
+
+The repo has no README today; create `README.md` at the root. It must cover:
+
+- **Overview:** what the site is and how it's deployed (static `index.html` on Vercel, `/api` serverless functions, domain rodneyboachie.com).
+- **Running locally:** how to serve the site and run the API functions locally (e.g. `vercel dev`), including a `.env` example (an `.env.example` file is committed, real `.env` git-ignored).
+- **Analytics setup, step by step**, written so Rodney (or someone else) could rebuild it from scratch:
+  - creating the Neon database and running the schema/migration (the exact command)
+  - all environment variables (`DATABASE_URL`, `DASHBOARD_PASSWORD`, `SESSION_SECRET`, any others), what each is for, how to generate the secret, and how to set them in Vercel (dashboard and/or `vercel env add`)
+  - enabling Vercel Web Analytics
+  - creating the GA4 property and where to put the measurement ID
+  - the IP-anonymisation cron job and how to check it's running
+  - accessing the dashboard (`/dashboard`) and excluding your own visits
+- **Operating it:** how to export data (Postgres dump / CSV), how to rotate the dashboard password, how to turn off any one analytics source, and what happens when analytics is down (link to the resilience behaviour).
+- **Troubleshooting:** the common failures (no data arriving, dashboard login failing, cron not running) and how to diagnose them.
+
 ## Non-goals
 
 - Multi-page tracking beyond what exists (site is one page; the tracker should still record `path` so it works if pages are added later, but no SPA routing support needed).
