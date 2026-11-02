@@ -1,0 +1,10 @@
+# Repo-only files: not needed by the site or its functions, so not deployed.
+docs/
+tests/
+scripts/
+db/
+README.md
+playwright.config.js
+.env.example
+.superpowers/
+test-results/
