@@ -5,8 +5,240 @@
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="robots" content="noindex" />
         <title>Dashboard</title>
+        <script>
+            (function () {
+                try {
+                    var saved = localStorage.getItem("theme");
+                    if (saved === "light" || saved === "dark") {
+                        document.documentElement.setAttribute("data-theme", saved);
+                    }
+                } catch (e) {}
+            })();
+        </script>
+        <style>
+            :root {
+                --bg: #f7f6f3;
+                --fg: #17161a;
+                --muted: #6f6d72;
+                --accent: #c9754a;
+                --accent-fg: #17161a;
+            }
+            @media (prefers-color-scheme: dark) {
+                :root:not([data-theme="light"]) {
+                    --bg: #0d0d0f;
+                    --fg: #f2f1ee;
+                    --muted: #918f95;
+                    --accent: #d98b62;
+                    --accent-fg: #0d0d0f;
+                }
+            }
+            :root[data-theme="dark"] {
+                --bg: #0d0d0f;
+                --fg: #f2f1ee;
+                --muted: #918f95;
+                --accent: #d98b62;
+                --accent-fg: #0d0d0f;
+            }
+            * { box-sizing: border-box; }
+            body { margin: 0; background: var(--bg); color: var(--fg); font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif; }
+            main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
+            header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+            h1 { font-size: 1.25rem; margin: 0; }
+            h2 { font-size: 1rem; margin: 0 0 8px; }
+            .tabs { display: flex; gap: 6px; }
+            button { font: inherit; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--muted); background: transparent; color: var(--fg); cursor: pointer; }
+            button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 600; }
+            button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+            #error { color: var(--accent); margin: 16px 0 0; min-height: 1.2em; }
+            .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 20px 0; }
+            .tile { border: 1px solid var(--muted); border-radius: 10px; padding: 12px; }
+            .tile b { display: block; font-size: 1.6rem; }
+            .tile span { color: var(--muted); font-size: 0.8rem; }
+            .chart { border: 1px solid var(--muted); border-radius: 10px; padding: 12px; margin-bottom: 20px; }
+            .chart svg { width: 100%; height: 180px; display: block; }
+            .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+            .scroll { overflow-x: auto; }
+            table { border-collapse: collapse; width: 100%; font-size: 0.85rem; }
+            th, td { text-align: left; padding: 4px 8px; border-bottom: 1px solid color-mix(in srgb, var(--muted) 30%, transparent); white-space: nowrap; }
+            td.num, th.num { text-align: right; }
+            section { margin-bottom: 24px; }
+            .empty { color: var(--muted); }
+        </style>
     </head>
     <body>
-        <div id="dashboard-root"></div>
+        <main>
+            <header>
+                <h1>Dashboard</h1>
+                <div class="tabs" id="tabs"></div>
+            </header>
+            <p id="error" role="alert"></p>
+            <div id="dashboard-root"></div>
+        </main>
+        <script>
+            try { localStorage.setItem("ace_analytics_optout", "1"); } catch (e) {}
+
+            var RANGES = [["today", "Today"], ["7d", "7 days"], ["30d", "30 days"], ["all", "All time"]];
+            var root = document.getElementById("dashboard-root");
+            var errorEl = document.getElementById("error");
+            var tabs = document.getElementById("tabs");
+            var current = "7d";
+            var recentRows = [];
+
+            function el(tag, text, cls) {
+                var n = document.createElement(tag);
+                if (text != null) n.textContent = text;
+                if (cls) n.className = cls;
+                return n;
+            }
+            function fmtMs(ms) {
+                var s = Math.round(ms / 1000);
+                return s >= 60 ? Math.floor(s / 60) + "m " + (s % 60) + "s" : s + "s";
+            }
+            function tile(value, label, caption) {
+                var t = el("div", null, "tile");
+                t.appendChild(el("b", value));
+                t.appendChild(el("div", label));
+                if (caption) t.appendChild(el("span", caption));
+                return t;
+            }
+            function table(title, cols, rows) {
+                var s = el("section");
+                s.appendChild(el("h2", title));
+                if (!rows.length) { s.appendChild(el("div", "No data", "empty")); return s; }
+                var wrap = el("div", null, "scroll");
+                var t = el("table");
+                var tr = el("tr");
+                cols.forEach(function (c) { tr.appendChild(el("th", c.label, c.num ? "num" : "")); });
+                var thead = el("thead"); thead.appendChild(tr); t.appendChild(thead);
+                var tb = el("tbody");
+                rows.forEach(function (r) {
+                    var row = el("tr");
+                    cols.forEach(function (c) {
+                        var v = c.get(r);
+                        row.appendChild(el("td", v == null || v === "" ? "—" : v, c.num ? "num" : ""));
+                    });
+                    tb.appendChild(row);
+                });
+                t.appendChild(tb); wrap.appendChild(t); s.appendChild(wrap);
+                return s;
+            }
+            var NS = "http://www.w3.org/2000/svg";
+            function svg(tag, attrs) {
+                var n = document.createElementNS(NS, tag);
+                for (var k in attrs) n.setAttribute(k, attrs[k]);
+                return n;
+            }
+            function chart(series) {
+                var box = el("div", null, "chart");
+                box.appendChild(el("h2", "Views per day"));
+                var W = 600, H = 180, pad = 4, base = H - 20;
+                var s = svg("svg", { viewBox: "0 0 " + W + " " + H, preserveAspectRatio: "none", role: "img", "aria-label": "Views per day" });
+                var max = Math.max.apply(null, series.map(function (d) { return d.views; }).concat([1]));
+                var bw = (W - pad * 2) / series.length;
+                series.forEach(function (d, i) {
+                    var h = (d.views / max) * (base - 10);
+                    var r = svg("rect", { x: pad + i * bw + bw * 0.1, y: base - h, width: bw * 0.8, height: Math.max(h, d.views ? 1 : 0), fill: "var(--accent)" });
+                    var tip = svg("title", {}); tip.textContent = d.day + ": " + d.views + " views, " + d.visitors + " visitors";
+                    r.appendChild(tip); s.appendChild(r);
+                });
+                s.appendChild(svg("line", { x1: 0, x2: W, y1: base, y2: base, stroke: "var(--muted)", "stroke-width": 1 }));
+                var l = svg("text", { x: pad, y: H - 4, fill: "var(--muted)", "font-size": 11 }); l.textContent = series[0].day;
+                var r2 = svg("text", { x: W - pad, y: H - 4, fill: "var(--muted)", "font-size": 11, "text-anchor": "end" }); r2.textContent = series[series.length - 1].day;
+                var m = svg("text", { x: pad, y: 10, fill: "var(--muted)", "font-size": 11 }); m.textContent = "max " + max;
+                s.appendChild(l); s.appendChild(r2); s.appendChild(m);
+                box.appendChild(s);
+                return box;
+            }
+            function csvCell(v) {
+                v = v == null ? "" : String(v);
+                return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+            }
+            function downloadCsv() {
+                var keys = ["created_at", "path", "referrer_domain", "country", "city", "device", "browser", "os", "ip", "utm_campaign"];
+                var lines = [keys.join(",")].concat(recentRows.map(function (r) {
+                    return keys.map(function (k) { return csvCell(r[k]); }).join(",");
+                }));
+                var a = document.createElement("a");
+                a.href = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/csv" }));
+                a.download = "recent-visits.csv";
+                a.click();
+                URL.revokeObjectURL(a.href);
+            }
+            function render(d) {
+                recentRows = d.recent;
+                root.textContent = "";
+                var tiles = el("div", null, "tiles");
+                tiles.appendChild(tile(d.totals.views, "Views"));
+                tiles.appendChild(tile(d.totals.visitors, "Visitors", "unique visitors among those who accepted cookies"));
+                tiles.appendChild(tile(d.totals.sessions, "Sessions"));
+                tiles.appendChild(tile(fmtMs(d.engagement.avgEngagedMs), "Avg engaged time"));
+                tiles.appendChild(tile(d.engagement.avgScrollPct + "%", "Avg scroll"));
+                root.appendChild(tiles);
+                root.appendChild(chart(d.series));
+                var g = el("div", null, "grid");
+                var views = { label: "Views", num: true, get: function (r) { return r.views; } };
+                g.appendChild(table("Referrers", [{ label: "Domain", get: function (r) { return r.domain; } }, views], d.referrers));
+                g.appendChild(table("Campaigns", [
+                    { label: "Source", get: function (r) { return r.source; } },
+                    { label: "Medium", get: function (r) { return r.medium; } },
+                    { label: "Campaign", get: function (r) { return r.campaign; } }, views], d.campaigns));
+                g.appendChild(table("Countries", [{ label: "Country", get: function (r) { return r.country; } }, views], d.countries));
+                g.appendChild(table("Cities", [
+                    { label: "City", get: function (r) { return r.city; } },
+                    { label: "Region", get: function (r) { return r.region; } },
+                    { label: "Country", get: function (r) { return r.country; } }, views], d.cities));
+                g.appendChild(table("Devices", [{ label: "Device", get: function (r) { return r.device; } }, views], d.devices));
+                g.appendChild(table("Browsers", [{ label: "Browser", get: function (r) { return r.browser; } }, views], d.browsers));
+                g.appendChild(table("OS", [{ label: "OS", get: function (r) { return r.os; } }, views], d.os));
+                g.appendChild(table("Events", [
+                    { label: "Event", get: function (r) { return r.name; } },
+                    { label: "Label", get: function (r) { return r.label; } },
+                    { label: "Count", num: true, get: function (r) { return r.count; } }], d.events));
+                root.appendChild(g);
+                var rec = table("Recent visits", [
+                    { label: "Time", get: function (r) { return r.created_at; } },
+                    { label: "Path", get: function (r) { return r.path; } },
+                    { label: "Referrer", get: function (r) { return r.referrer_domain; } },
+                    { label: "Country", get: function (r) { return r.country; } },
+                    { label: "City", get: function (r) { return r.city; } },
+                    { label: "Device", get: function (r) { return r.device; } },
+                    { label: "Browser", get: function (r) { return r.browser; } },
+                    { label: "OS", get: function (r) { return r.os; } },
+                    { label: "IP", get: function (r) { return r.ip; } },
+                    { label: "Campaign", get: function (r) { return r.utm_campaign; } }], d.recent);
+                var btn = el("button", "Download CSV");
+                btn.type = "button";
+                btn.addEventListener("click", downloadCsv);
+                rec.insertBefore(btn, rec.children[1]);
+                root.appendChild(rec);
+            }
+            function setTabs() {
+                Array.prototype.forEach.call(tabs.children, function (b) {
+                    b.setAttribute("aria-pressed", b.dataset.range === current ? "true" : "false");
+                });
+            }
+            function load(range) {
+                current = range; setTabs(); errorEl.textContent = "";
+                fetch("/api/dashboard/data?range=" + encodeURIComponent(range), { credentials: "same-origin" })
+                    .then(function (res) {
+                        if (res.status === 401) { location.reload(); return null; }
+                        if (!res.ok) throw new Error("status " + res.status);
+                        return res.json();
+                    })
+                    .then(function (d) { if (d && range === current) render(d); })
+                    .catch(function () {
+                        if (range !== current) return;
+                        root.textContent = "";
+                        errorEl.textContent = "Analytics database unavailable \u2014 the public site is unaffected.";
+                    });
+            }
+            RANGES.forEach(function (r) {
+                var b = el("button", r[1]);
+                b.type = "button"; b.dataset.range = r[0];
+                b.addEventListener("click", function () { load(r[0]); });
+                tabs.appendChild(b);
+            });
+            load(current);
+        </script>
     </body>
 </html>
