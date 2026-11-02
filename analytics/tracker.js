@@ -52,6 +52,14 @@ try {
         else if (t.closest("#openModalBtn")) track("modal_open");
       } catch {}
     });
+    // Clicking Accept: attach IDs and IP to this page's anonymous pageview.
+    addEventListener("ace:consent", (e) => {
+      try {
+        if (e.detail !== "accepted" || isOptedOut(localStorage)) return;
+        const { visitorId, sessionId } = ids();
+        if (visitorId && sessionId) send({ type: "consent", pageId, consent: true, visitorId, sessionId });
+      } catch {}
+    });
     document.addEventListener("ace:contact-submitted", () => track("contact_submit"));
 
     // Engagement: visible time and deepest scroll.

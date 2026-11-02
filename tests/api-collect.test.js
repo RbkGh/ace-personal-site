@@ -47,6 +47,7 @@ test("rejected inputs answer 204 and write nothing", async () => {
   await expectNoWrite(req(PV, { origin: "https://evil.example" }));
   await expectNoWrite(req(PV, { "user-agent": "Googlebot/2.1" }));
   await expectNoWrite(req(PV), { env: { VERCEL_ENV: "preview" } });
+  await expectNoWrite(req(PV), { env: { VERCEL_ENV: "development" } });
   await expectNoWrite(req(PV), { env: {} });
 });
 
@@ -55,8 +56,8 @@ test("null query is a no-op 204", async () => {
   assert.equal((await handler(req(PV))).status, 204);
 });
 
-test("localhost origin accepted; development env allowed", async () => {
-  const { db, handler, count } = await setup({ env: { VERCEL_ENV: "development" } });
+test("localhost origin accepted", async () => {
+  const { db, handler, count } = await setup();
   await handler(req(PV, { origin: "http://localhost:3000" }));
   assert.equal(await count(), 1);
   await db.close();
@@ -98,5 +99,16 @@ test("hanging query: 204 within 2000 ms", async () => {
   const res = await handler(req(PV));
   assert.equal(res.status, 204);
   assert.ok(Date.now() - t < 2000);
+  await db.close();
+});
+
+test("consent hit back-fills the anonymous pageview", async () => {
+  const { db, handler } = await setup();
+  await handler(req(PV));
+  const ids = { visitorId: "00000000-0000-4000-8000-000000000002", sessionId: "00000000-0000-4000-8000-000000000003" };
+  const res = await handler(req({ type: "consent", pageId: PV.pageId, consent: true, ...ids }, { "x-forwarded-for": "203.0.113.7" }));
+  assert.equal(res.status, 204);
+  const [r] = await db.query("select visitor_id, session_id, host(ip) as ip from pageviews");
+  assert.deepEqual(r, { visitor_id: ids.visitorId, session_id: ids.sessionId, ip: "203.0.113.7" });
   await db.close();
 });

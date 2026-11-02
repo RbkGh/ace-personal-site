@@ -155,3 +155,38 @@ test("duplicate pageview is ignored", async () => {
   assert.equal((await db.query("select count(*)::int as n from pageviews"))[0].n, 1);
   await db.close();
 });
+
+const consentHit = (o = {}) => ({ type: "consent", pageId: U(1), consent: true, visitorId: U(2), sessionId: U(3), ...o });
+
+test("normalizePayload consent hit", () => {
+  assert.deepEqual(normalizePayload(consentHit({ visitorId: U(2).toUpperCase() })),
+    { type: "consent", pageId: U(1), consent: true, visitorId: U(2), sessionId: U(3) });
+  for (const b of [consentHit({ consent: false }), consentHit({ consent: "true" }), consentHit({ consent: undefined }),
+    consentHit({ visitorId: undefined }), consentHit({ sessionId: "nope" }), consentHit({ pageId: "x" })])
+    assert.equal(normalizePayload(b), null, JSON.stringify(b));
+});
+
+test("consent hit back-fills IDs and IP on the anonymous pageview", async () => {
+  const db = await freshDb();
+  await recordHit(db.query, normalizePayload(pv()), { headers: new Headers({ "x-forwarded-for": "203.0.113.9" }) });
+  await recordHit(db.query, normalizePayload(consentHit()), { headers: new Headers({ "x-forwarded-for": "203.0.113.7, 10.0.0.1" }) });
+  const [r] = await db.query("select visitor_id, session_id, host(ip) as ip from pageviews");
+  assert.deepEqual(r, { visitor_id: U(2), session_id: U(3), ip: "203.0.113.7" });
+  await db.close();
+});
+
+test("consent hit ignores bad IP, never overwrites, unknown page is a no-op", async () => {
+  const db = await freshDb();
+  await recordHit(db.query, normalizePayload(pv()), { headers: new Headers() });
+  await recordHit(db.query, normalizePayload(consentHit()), { headers: new Headers({ "x-forwarded-for": "not-an-ip" }) });
+  let [r] = await db.query("select visitor_id, session_id, ip from pageviews");
+  assert.deepEqual(r, { visitor_id: U(2), session_id: U(3), ip: null });
+
+  await recordHit(db.query, normalizePayload(consentHit({ visitorId: U(4), sessionId: U(5) })), { headers: new Headers({ "x-forwarded-for": "203.0.113.7" }) });
+  [r] = await db.query("select visitor_id, session_id, ip from pageviews");
+  assert.deepEqual(r, { visitor_id: U(2), session_id: U(3), ip: null });
+
+  await recordHit(db.query, normalizePayload(consentHit({ pageId: U(99) })), { headers: new Headers() });
+  assert.equal((await db.query("select count(*)::int as n from pageviews"))[0].n, 1);
+  await db.close();
+});

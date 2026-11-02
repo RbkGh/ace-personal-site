@@ -4,7 +4,7 @@ import { isBot } from "../lib/ua.js";
 
 const MAX_BODY_BYTES = 4096;
 const DB_TIMEOUT_MS = 1500;
-const WRITE_ENVS = new Set(["production", "development"]);
+const WRITE_ENVS = new Set(["production"]);
 const HTTPS_HOSTS = new Set(["rodneyboachie.com", "www.rodneyboachie.com", "ace-personal-site.vercel.app"]);
 
 // Accepts an Origin or Referer value; only its scheme + host are considered.
