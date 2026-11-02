@@ -5,6 +5,16 @@
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="robots" content="noindex" />
         <title>Sign in</title>
+        <script>
+            (function () {
+                try {
+                    var saved = localStorage.getItem("theme");
+                    if (saved === "light" || saved === "dark") {
+                        document.documentElement.setAttribute("data-theme", saved);
+                    }
+                } catch (e) {}
+            })();
+        </script>
         <style>
             :root {
                 --bg: #f7f6f3;
@@ -14,13 +24,20 @@
                 --accent-fg: #17161a;
             }
             @media (prefers-color-scheme: dark) {
-                :root {
+                :root:not([data-theme="light"]) {
                     --bg: #0d0d0f;
                     --fg: #f2f1ee;
                     --muted: #918f95;
                     --accent: #d98b62;
                     --accent-fg: #0d0d0f;
                 }
+            }
+            :root[data-theme="dark"] {
+                --bg: #0d0d0f;
+                --fg: #f2f1ee;
+                --muted: #918f95;
+                --accent: #d98b62;
+                --accent-fg: #0d0d0f;
             }
             * { box-sizing: border-box; }
             body {
@@ -30,7 +47,7 @@
                 place-items: center;
                 background: var(--bg);
                 color: var(--fg);
-                font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+                font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
             }
             form { width: min(320px, 86vw); display: grid; gap: 14px; }
             h1 { font-size: 1.25rem; margin: 0; }
