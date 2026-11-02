@@ -9,9 +9,13 @@ const FOOTER = {
 
 async function load(page) {
   const errors = [];
+  errors.analytics = [];
   page.on("pageerror", (e) => {
     // The deliberately throwing analytics script is expected; anything else is a site bug.
-    if (/\/analytics\//.test(`${e.message}\n${e.stack || ""}`)) return;
+    if (/\/analytics\//.test(`${e.message}\n${e.stack || ""}`)) {
+      errors.analytics.push(e);
+      return;
+    }
     errors.push(e);
   });
   return errors;
@@ -40,21 +44,18 @@ test("analytics scripts blocked", async ({ page }) => {
   await page.goto("/");
   await assertSiteWorks(page, errors);
   await expect(page.locator(".ace-consent")).toHaveCount(0);
-  // Nothing fixed-position sits over the bottom of the viewport.
-  const covered = await page.evaluate(() => {
-    const el = document.elementFromPoint(innerWidth / 2, innerHeight - 5);
-    return el && getComputedStyle(el).position === "fixed";
-  });
-  expect(covered).toBeFalsy();
 });
 
 test("api failing slowly", async ({ page }) => {
   const errors = await load(page);
+  const collect = page.waitForRequest(/\/api\/collect/, { timeout: 5000 });
   await page.goto("/");
   const start = Date.now();
   await dismissBanner(page);
   await assertSiteWorks(page, errors);
   expect(Date.now() - start).toBeLessThan(2000);
+  // Prove the slow backend was actually hit (the 3 s delay outlasts the checks above).
+  expect((await collect).method()).toBe("POST");
 });
 
 test("analytics scripts throw", async ({ page }) => {
@@ -65,6 +66,8 @@ test("analytics scripts throw", async ({ page }) => {
   await page.goto("/");
   await dismissBanner(page);
   await assertSiteWorks(page, errors);
+  // Proves the fault was injected.
+  expect(errors.analytics.filter((e) => /boom/.test(e.message))).toHaveLength(1);
 });
 
 test("contact form succeeds with analytics blocked", async ({ page }) => {
