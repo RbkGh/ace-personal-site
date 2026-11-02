@@ -434,25 +434,28 @@
         </main>
 
         <footer>
-            <a href="https://github.com/rbkgh" target="_blank" rel="noopener"
+            <a data-analytics="github" href="https://github.com/rbkgh" target="_blank" rel="noopener"
                 >GitHub</a
             >
             <a
+                data-analytics="linkedin"
                 href="https://linkedin.com/in/rodney-boachie"
                 target="_blank"
                 rel="noopener"
                 >LinkedIn</a
             >
-            <a href="https://twitter.com/ace_rbk" target="_blank" rel="noopener"
+            <a data-analytics="twitter" href="https://twitter.com/ace_rbk" target="_blank" rel="noopener"
                 >X</a
             >
             <a
+                data-analytics="instagram"
                 href="https://instagram.com/ace_rbk"
                 target="_blank"
                 rel="noopener"
                 >Instagram</a
             >
             <span>PSN: ace_rbk | ace__rbk</span>
+            <a href="/privacy">Privacy</a>
         </footer>
 
         <div class="modal-backdrop" id="modalBackdrop">
@@ -559,6 +562,9 @@
                                     "Message sent — thanks, I'll be in touch.";
                                 status.className = "form-status success";
                                 form.reset();
+                                document.dispatchEvent(
+                                    new CustomEvent("ace:contact-submitted"),
+                                );
                             } else {
                                 return response.json().then(function (data) {
                                     const msg =
@@ -582,5 +588,8 @@
                 });
             })();
         </script>
+        <script defer src="/_vercel/insights/script.js"></script>
+        <script type="module" src="/analytics/consent.js"></script>
+        <script type="module" src="/analytics/tracker.js"></script>
     </body>
 </html>
