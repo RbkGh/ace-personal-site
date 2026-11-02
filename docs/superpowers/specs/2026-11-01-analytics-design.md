@@ -35,6 +35,18 @@ If any one provider disappears, changes pricing, or loses data, the other two st
   - a recent-visits feed (latest ~50 page views with their details)
 - Data in the owned database is exportable (it's plain Postgres; a CSV export button on the dashboard is a nice-to-have, not required).
 
+## Resilience requirement (Rodney's decision)
+
+The website must keep working fully — page renders, theme toggle, "Let's talk" modal, contact form, footer links — even if analytics fails for any reason (provider outage, Neon down or out of quota, function errors, ad/tracker blockers, script load failures, slow networks, bad config such as a missing env var or GA4 ID). Concretely:
+
+- **Isolation from site code:** analytics lives in its own separate script(s), loaded `async`/`defer`, never inline inside the existing site script. A thrown error, failed load, or blocked request in analytics cannot stop the site's own JavaScript from running. All analytics hooks into the page (click listeners, etc.) are wrapped so errors are swallowed.
+- **Each source independent:** a failure in Vercel Analytics, GA4, or the owned tracker doesn't affect the other two.
+- **No blocking:** nothing analytics-related is render-blocking or awaited by the page. Sends use `sendBeacon` / `fetch` with `keepalive` and are fire-and-forget; no retries that pile up.
+- **Collect endpoint fails soft:** if the database is unreachable or the insert errors, the endpoint still responds quickly (e.g. `204`) and logs the error server-side; it never makes the visitor wait on the database beyond a short timeout.
+- **Consent banner degrades gracefully:** if its script fails, the site is simply shown without a banner (and GA4 stays off) — never a broken or stuck overlay.
+- **Dashboard isolated:** dashboard/API failures affect only `/dashboard`, never the public site.
+- **Verified:** the plan must include a check that the site still works with analytics scripts blocked and with the database unavailable.
+
 ## Non-goals
 
 - Multi-page tracking beyond what exists (site is one page; the tracker should still record `path` so it works if pages are added later, but no SPA routing support needed).
