@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Privacy — Ace (Rodney Boachie)</title>
+        <meta
+            name="description"
+            content="What analytics data rodneyboachie.com collects, what changes if you accept or decline, and how to change your choice."
+        />
+        <meta name="author" content="Rodney Boachie" />
+        <link rel="canonical" href="https://rodneyboachie.com/privacy" />
+        <meta name="theme-color" content="#c9754a" />
+        <link
+            rel="icon"
+            type="image/svg+xml"
+            href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230d0d0f'/%3E%3Ctext x='32' y='44' font-family='Arial, sans-serif' font-weight='700' font-size='34' fill='%23c9754a' text-anchor='middle'%3EA%3C/text%3E%3C/svg%3E"
+        />
+        <script>
+            (function () {
+                var saved = localStorage.getItem("theme");
+                if (saved === "light" || saved === "dark") {
+                    document.documentElement.setAttribute("data-theme", saved);
+                }
+            })();
+        </script>
+        <style>
+            :root {
+                --bg: #f7f6f3;
+                --fg: #17161a;
+                --muted: #6f6d72;
+                --accent: #c9754a;
+                --accent-fg: #17161a;
+            }
+            @media (prefers-color-scheme: dark) {
+                :root:not([data-theme="light"]) {
+                    --bg: #0d0d0f;
+                    --fg: #f2f1ee;
+                    --muted: #918f95;
+                    --accent: #d98b62;
+                    --accent-fg: #0d0d0f;
+                }
+            }
+            :root[data-theme="dark"] {
+                --bg: #0d0d0f;
+                --fg: #f2f1ee;
+                --muted: #918f95;
+                --accent: #d98b62;
+                --accent-fg: #0d0d0f;
+            }
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            body {
+                background: var(--bg);
+                color: var(--fg);
+                font-family:
+                    -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI",
+                    sans-serif;
+                min-height: 100vh;
+                padding: 72px 24px 96px;
+                line-height: 1.6;
+            }
+            main {
+                max-width: 640px;
+                margin: 0 auto;
+            }
+            .back {
+                color: var(--muted);
+                text-decoration: none;
+                font-size: 0.85rem;
+            }
+            .back:hover {
+                color: var(--fg);
+            }
+            h1 {
+                font-size: clamp(1.75rem, 5vw, 2.4rem);
+                line-height: 1.15;
+                margin: 20px 0 8px;
+            }
+            h2 {
+                font-size: 1.1rem;
+                margin: 32px 0 8px;
+            }
+            p {
+                color: var(--muted);
+                margin-bottom: 12px;
+            }
+            .updated {
+                font-size: 0.8rem;
+            }
+            .choice {
+                display: inline-block;
+                background: var(--accent);
+                color: var(--accent-fg);
+                border: none;
+                padding: 10px 20px;
+                font-size: 0.95rem;
+                font-weight: 600;
+                border-radius: 6px;
+                cursor: pointer;
+                font-family: inherit;
+            }
+            .choice:hover {
+                opacity: 0.9;
+            }
+            .choice:focus-visible {
+                outline: 2px solid var(--accent);
+                outline-offset: 3px;
+            }
+            #choiceFallback {
+                margin-top: 12px;
+            }
+            .theme-toggle {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                display: flex;
+                gap: 2px;
+                background: rgba(128, 128, 128, 0.12);
+                border-radius: 6px;
+                padding: 2px;
+                z-index: 10;
+            }
+            .theme-toggle button {
+                border: none;
+                background: transparent;
+                color: var(--muted);
+                font-size: 0.7rem;
+                padding: 5px 9px;
+                border-radius: 4px;
+                cursor: pointer;
+                font-family: inherit;
+                transition:
+                    background 0.15s ease,
+                    color 0.15s ease;
+            }
+            .theme-toggle button.active {
+                background: var(--accent);
+                color: var(--accent-fg);
+            }
+            .theme-toggle button:hover:not(.active) {
+                color: var(--fg);
+            }
+
+            @media (max-width: 480px) {
+                .theme-toggle {
+                    top: 14px;
+                    right: 14px;
+                }
+                .theme-toggle button {
+                    padding: 4px 7px;
+                    font-size: 0.65rem;
+                }
+            }
+
+            .modal-backdrop {
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(0, 0, 0, 0.5);
+                align-items: center;
+                justify-content: center;
+                z-index: 1000;
+                padding: 20px;
+            }
+            .modal-backdrop.active {
+                display: flex;
+            }
+            .modal {
+                background: var(--bg);
+                color: var(--fg);
+                border-radius: 10px;
+                padding: 28px;
+                max-width: 420px;
+                width: 100%;
+                position: relative;
+                border: 1px solid var(--muted);
+            }
+            .modal-close {
+                position: absolute;
+                top: 14px;
+                right: 14px;
+                background: none;
+                border: none;
+                color: var(--muted);
+                font-size: 1.3rem;
+                cursor: pointer;
+                line-height: 1;
+            }
+            .modal-close:hover {
+                color: var(--fg);
+            }
+            .modal h2 {
+                font-size: 1.2rem;
+                margin-bottom: 18px;
+            }
+            .form-group {
+                margin-bottom: 14px;
+                text-align: left;
+            }
+            .form-group label {
+                display: block;
+                font-size: 0.8rem;
+                color: var(--muted);
+                margin-bottom: 4px;
+            }
+            .form-group input,
+            .form-group textarea {
+                width: 100%;
+                padding: 10px;
+                border: 1px solid var(--muted);
+                border-radius: 6px;
+                background: transparent;
+                color: var(--fg);
+                font-family: inherit;
+                font-size: 0.95rem;
+            }
+            .form-group textarea {
+                resize: vertical;
+                min-height: 80px;
+            }
+            .form-group input:focus,
+            .form-group textarea:focus {
+                outline: 2px solid var(--accent);
+                outline-offset: 1px;
+            }
+            .modal-submit {
+                background: var(--accent);
+                color: var(--accent-fg);
+                border: none;
+                padding: 10px 20px;
+                border-radius: 6px;
+                font-weight: 600;
+                cursor: pointer;
+                font-family: inherit;
+                width: 100%;
+            }
+            .modal-submit:hover {
+                opacity: 0.9;
+            }
+            .form-status {
+                margin-top: 12px;
+                font-size: 0.85rem;
+                min-height: 1.2em;
+            }
+            .form-status.success {
+                color: #3a9d5d;
+            }
+            .form-status.error {
+                color: #c94a4a;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="theme-toggle" id="themeToggle">
+            <button type="button" data-theme-choice="light">Light</button>
+            <button type="button" data-theme-choice="dark">Dark</button>
+            <button type="button" data-theme-choice="system">Auto</button>
+        </div>
+
+        <main>
+            <a class="back" href="/">← Back to home</a>
+            <h1>Privacy</h1>
+            <p class="updated">Last updated: 2 November 2026</p>
+
+            <h2>What I collect</h2>
+            <p>
+                I measure how people use this site with three tools: Vercel Web
+                Analytics, Google Analytics 4, and a small tracker I built
+                myself that stores its data in my own database. What they
+                receive depends on the choice you make in the cookie banner.
+            </p>
+
+            <h2>If you decline (or haven't chosen yet)</h2>
+            <p>
+                Vercel Web Analytics and my own tracker run. My tracker records
+                anonymous page views: the page, where you came from, any
+                campaign tags in the link, your screen and window size,
+                language, time zone, and your browser, operating system and
+                device type. It also records clicks on the footer links, opening
+                the contact form, and sending it (never what you wrote), plus
+                how long the page was open and how far you scrolled. I also
+                record your approximate location (country, region and city),
+                which Vercel works out from your connection. Google Analytics is
+                not loaded.
+            </p>
+            <p>
+                None of this includes your IP address, and nothing identifying
+                you is saved in your browser, so I can't tell whether two page
+                views came from the same person.
+            </p>
+
+            <h2>If you accept</h2>
+            <p>
+                Everything above, plus: a random visitor ID (kept in your
+                browser's local storage for up to a year) and a session ID
+                (which expires after 30 minutes of inactivity), so I can count
+                returning visitors and visits. I also store your IP address.
+                Google Analytics 4 is loaded and collects its own data under
+                Google's terms.
+            </p>
+
+            <h2>How long I keep it</h2>
+            <p>
+                After 90 days, stored IP addresses are shortened automatically
+                (the last part of an IPv4 address is dropped, and an IPv6
+                address is cut to its first 48 bits), so they no longer point
+                to a single connection. The rest of the data is kept
+                indefinitely.
+            </p>
+
+            <h2>The contact form</h2>
+            <p>
+                What you type in the contact form is sent to Formspree so it
+                reaches me. It is never part of my analytics, and none of the
+                three tools above receive it.
+            </p>
+
+            <h2>Your choice</h2>
+            <p>
+                You can change your choice at any time. Declining or accepting
+                again takes effect straight away.
+            </p>
+            <button type="button" class="choice" id="changeChoice">
+                Change cookie choice
+            </button>
+            <p id="choiceFallback" hidden>
+                If this button doesn't work, clear this site's data in your
+                browser to choose again.
+            </p>
+        </main>
+
+        <script>
+            (function () {
+                const themeToggle = document.getElementById("themeToggle");
+                const themeButtons = themeToggle.querySelectorAll("button");
+                function applyTheme(choice) {
+                    if (choice === "light" || choice === "dark") {
+                        document.documentElement.setAttribute("data-theme", choice);
+                    } else {
+                        document.documentElement.removeAttribute("data-theme");
+                    }
+                    themeButtons.forEach(function (btn) {
+                        btn.classList.toggle("active", btn.dataset.themeChoice === choice);
+                    });
+                }
+                applyTheme(localStorage.getItem("theme") || "system");
+                themeButtons.forEach(function (btn) {
+                    btn.addEventListener("click", function () {
+                        const choice = btn.dataset.themeChoice;
+                        localStorage.setItem("theme", choice);
+                        applyTheme(choice);
+                    });
+                });
+                var change = document.getElementById("changeChoice");
+                var fallback = document.getElementById("choiceFallback");
+                change.addEventListener("click", function () {
+                    if (window.aceConsent && typeof window.aceConsent.open === "function") {
+                        window.aceConsent.open();
+                    } else {
+                        fallback.hidden = false;
+                    }
+                });
+            })();
+        </script>
+        <script defer src="/_vercel/insights/script.js"></script>
+        <script type="module" src="/analytics/consent.js"></script>
+        <script type="module" src="/analytics/tracker.js"></script>
+    </body>
+</html>
